@@ -1,0 +1,135 @@
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  external_labels:
+      monitor: 'example'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: ['localhost:9093']
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+  - "alert_rules.yml"
+
+scrape_configs:
+
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['localhost:9090', 'localhost:9115', '192.168.1.232:9090', '192.168.1.232:9115']
+        labels:
+          alias: promo
+
+  - job_name: 'mariadb'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['localhost:9104']
+        labels:
+          alias: marusya
+
+  - job_name: 'nginx'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+     - targets: ['192.168.1.202:9113', '192.168.1.232:9113']
+
+  - job_name: 'php-fpm'
+    honor_timestamps: true
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    enable_http2: true
+    static_configs:
+      - targets: ['192.168.1.202:9253', '192.168.1.232:9253']
+
+  - job_name: 'postgress'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+     - targets: ['localhost:9187', '192.168.1.232:9187']
+
+  - job_name: 'node'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['192.168.1.202:9100', '192.168.1.232:9100']
+
+  - job_name: 'node_win'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['192.168.1.102:9182', '192.168.1.100:9182', '192.168.1.104:9182']
+
+  - job_name: 'node_droid'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['192.168.1.116:9100', '192.168.1.109:9100']
+
+  - job_name: blackbox
+    honor_timestamps: true
+    params:
+      module:
+      - http_2xx
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    metrics_path: /probe
+    scheme: http
+    follow_redirects: true
+    relabel_configs:
+    - source_labels: [__address__]
+      separator: ;
+      regex: (.*)
+      target_label: __param_target
+      replacement: $1
+      action: replace
+    - source_labels: [__param_target]
+      separator: ;
+      regex: (.*)
+      target_label: instance
+      replacement: $1
+      action: replace
+    - separator: ;
+      regex: (.*)
+      target_label: __address__
+      replacement: localhost:9115
+      action: replace
+    static_configs:
+    - targets:
+      - https://otus.ru
+
+  - job_name: 'snmp-exporter'
+    static_configs:
+      - targets: ['192.168.1.1', '192.168.1.217', '192.168.1.230']
+    metrics_path: /snmp
+    params:
+        module: [if_mib]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9116
+
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+      module: [ "http_2xx" ]
+    relabel_configs:
+      - source_labels: [ "__address__" ]
+        target_label: "__param_target"
+      - source_labels: [ "__param_target" ]
+        target_label: "instance"
+      - target_label: "__address__"
+        replacement: "localhost:9115"
+    static_configs:
+      - targets: [ "fat123.keenetic.pro", "otus.ru" ]
